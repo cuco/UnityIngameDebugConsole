@@ -8,12 +8,11 @@ namespace IngameDebugConsole
 		private string m_command;
 		private string m_description;
 
-		public string Command { get { return m_command; } }
-		public string Description { get { return m_description; } }
+        public string RenameCommand { get { return m_command; } set { m_command = value; }}
+        public string Description { get { return m_description; } set { m_description = value; }}
 
-		public ConsoleMethodAttribute( string command, string description )
-		{
-			m_command = command;
-			m_description = description;
-		}
+        public ConsoleMethodAttribute()
+        {
+            
+        }
 	} }

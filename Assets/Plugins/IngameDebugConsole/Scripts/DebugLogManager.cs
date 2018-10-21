@@ -127,6 +127,10 @@ namespace IngameDebugConsole
 		// Recycled list view to handle the log items efficiently
 		[SerializeField]
 		private DebugLogRecycledListView recycledListView;
+        [SerializeField]
+        private DebugCommandItemListView commandItemListView;
+        [SerializeField]
+        private GameObject commandListContainer;
 
 		// Filters to apply to the list of debug entries to show
 		private bool isCollapseOn = false;
@@ -190,6 +194,11 @@ namespace IngameDebugConsole
 
 				recycledListView.Initialize( this, collapsedLogEntries, indicesOfListEntriesToShow, logItemPrefab.Transform.sizeDelta.y );
 				recycledListView.UpdateItemsInTheList( true );
+
+                //TODO init command
+                commandItemListView.Initialize(this, DebugLogConsole.methods);
+                commandListContainer.SetActive(false);
+                commandItemListView.Show(false, null);
 
 				nullPointerEventData = new PointerEventData( null );
 
@@ -265,9 +274,12 @@ namespace IngameDebugConsole
 		{
 			if( screenDimensionsChanged )
 			{
-				// Update the recycled list view
-				if( isLogWindowVisible )
-					recycledListView.OnViewportDimensionsChanged();
+                // Update the recycled list view
+                if (isLogWindowVisible)
+                {
+                    recycledListView.OnViewportDimensionsChanged();
+                    commandItemListView.OnViewportChanged();
+                }
 				else
 					popupManager.OnViewportDimensionsChanged();
 
@@ -298,6 +310,16 @@ namespace IngameDebugConsole
 #endif
 		}
 
+        public void OnInputFieldChanged(string text)
+        {
+            commandItemListView.SetCommand(text);
+        }
+
+        public void SetCommand(string text)
+        {
+            commandInputField.text = text;
+        }
+
 		// Command field input is changed, check if command is submitted
 		public char OnValidateCommand( string text, int charIndex, char addedChar )
 		{
@@ -322,6 +344,24 @@ namespace IngameDebugConsole
 
 			return addedChar;
 		}
+
+        // Click the submit btn
+        public void SubmitInputCommand()
+        {
+            var text = commandInputField.text;
+            // Clear the command field
+            if (clearCommandAfterExecution)
+                commandInputField.text = "";
+
+            if (text.Length > 0)
+            {
+                // Execute the command
+                DebugLogConsole.ExecuteCommand(text);
+
+                // Snap to bottom and select the latest entry
+                SetSnapToBottom(true);
+            }
+        }
 
 		// A debug entry is received
 		private void ReceivedLog( string logString, string stackTrace, LogType logType )
@@ -538,6 +578,13 @@ namespace IngameDebugConsole
 			// Update the recycled list view
 			recycledListView.OnViewportDimensionsChanged();
 		}
+
+        public void ShowCommandList(BaseEventData dat)
+        {
+            bool flag = commandListContainer.activeSelf;
+            commandListContainer.SetActive(!flag);
+            commandItemListView.Show(!flag, commandInputField.text);
+        }
 
 		// Determine the filtered list of debug entries to show on screen
 		private void FilterLogs()

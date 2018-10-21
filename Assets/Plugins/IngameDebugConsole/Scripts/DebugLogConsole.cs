@@ -16,13 +16,15 @@ namespace IngameDebugConsole
 		public readonly Type[] parameterTypes;
 		public readonly object instance;
 
+        public readonly string command;
 		public readonly string signature;
 
-		public ConsoleMethodInfo( MethodInfo method, Type[] parameterTypes, object instance, string signature )
+		public ConsoleMethodInfo( MethodInfo method, Type[] parameterTypes, object instance, string command, string signature )
 		{
 			this.method = method;
 			this.parameterTypes = parameterTypes;
 			this.instance = instance;
+            this.command = command;
 			this.signature = signature;
 		}
 
@@ -40,7 +42,7 @@ namespace IngameDebugConsole
 		public delegate bool ParseFunction( string input, out object output );
 
 		// All the commands
-		private static Dictionary<string, ConsoleMethodInfo> methods = new Dictionary<string, ConsoleMethodInfo>();
+        public static Dictionary<string, ConsoleMethodInfo> methods = new Dictionary<string, ConsoleMethodInfo>();
 
 		// All the parse functions
 		private static Dictionary<Type, ParseFunction> parseFunctions;
@@ -114,7 +116,7 @@ namespace IngameDebugConsole
 						{
 							ConsoleMethodAttribute consoleMethod = attribute as ConsoleMethodAttribute;
 							if( consoleMethod != null )
-								AddCommand( consoleMethod.Command, consoleMethod.Description, method );
+								AddCommand( consoleMethod.RenameCommand, consoleMethod.Description, method );
 						}
 					}
 				}
@@ -126,7 +128,7 @@ namespace IngameDebugConsole
 		}
 
 		// Logs the list of available commands
-		[ConsoleMethod( "help", "Prints all commands" )]
+        [ConsoleMethod(RenameCommand = "help", Description = "Prints all commands" )]
 		public static void LogAllCommands()
 		{
 			int length = 20;
@@ -149,7 +151,7 @@ namespace IngameDebugConsole
 		}
 
 		// Logs system information
-		[ConsoleMethod( "sysinfo", "Prints system information" )]
+        [ConsoleMethod(RenameCommand = "sysinfo", Description = "Prints system information" )]
 		public static void LogSystemInfo()
 		{
 			StringBuilder stringBuilder = new StringBuilder( 1024 );
@@ -291,39 +293,43 @@ namespace IngameDebugConsole
 			// If method is valid, associate it with the entered command
 			if( isMethodValid )
 			{
+                //If command is null, use the method name
+                if (string.IsNullOrEmpty(command)) command = method.DeclaringType.Name.ToString() + "." + method.Name;
+
 				StringBuilder methodSignature = new StringBuilder( 256 );
-				methodSignature.Append( command ).Append( ": " );
+                methodSignature.Append("<color=yellow>").Append(command).Append("</color>").Append(" (");
 
-				if( !string.IsNullOrEmpty( description ) )
-					methodSignature.Append( description ).Append( " -> " );
+                for (int i = 0; i < parameterTypes.Length; i++)
+                {
+                    Type type = parameterTypes[i];
+                    string typeName;
+                    if (!typeReadableNames.TryGetValue(type, out typeName))
+                        typeName = type.Name;
 
-				methodSignature.Append( method.DeclaringType.ToString() ).Append( "." ).Append( method.Name ).Append( "(" );
-				for( int i = 0; i < parameterTypes.Length; i++ )
-				{
-					Type type = parameterTypes[i];
-					string typeName;
-					if( !typeReadableNames.TryGetValue( type, out typeName ) )
-						typeName = type.Name;
+                    methodSignature.Append("<color=yellow>").Append(typeName).Append("</color>");
 
-					methodSignature.Append( typeName );
+                    if (i < parameterTypes.Length - 1)
+                        methodSignature.Append(", ");
+                }
 
-					if( i < parameterTypes.Length - 1 )
-						methodSignature.Append( ", " );
-				}
+                methodSignature.Append(") ");
 
-				methodSignature.Append( ")" );
+                Type returnType = method.ReturnType;
+                if (returnType != typeof(void))
+                {
+                    string returnTypeName;
+                    if (!typeReadableNames.TryGetValue(returnType, out returnTypeName))
+                        returnTypeName = returnType.Name;
 
-				Type returnType = method.ReturnType;
-				if( returnType != typeof( void ) )
-				{
-					string returnTypeName;
-					if( !typeReadableNames.TryGetValue( returnType, out returnTypeName ) )
-						returnTypeName = returnType.Name;
+                    methodSignature.Append(" : ").Append(returnTypeName);
+                }
 
-					methodSignature.Append( " : " ).Append( returnTypeName );
-				}
-
-				methods[command] = new ConsoleMethodInfo( method, parameterTypes, instance, methodSignature.ToString() );
+                methodSignature.Append(" -> ");
+                if (!string.IsNullOrEmpty(description))
+                    methodSignature.Append(description);
+                else
+                    methodSignature.Append(method.DeclaringType.ToString()).Append(".").Append(method.Name);
+                methods[command] = new ConsoleMethodInfo(method, parameterTypes, instance, command, methodSignature.ToString());
 			}
 		}
 
