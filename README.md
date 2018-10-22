@@ -1,3 +1,5 @@
+项目使用只需要导入`Assets/Plugins/UnityIngameDebugConsole`即可
+
 # 添加的功能：
 添加了Command List，命令输入智能提示，选择后自动填充命令
 ## TODO List
