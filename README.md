@@ -1,3 +1,9 @@
+# 添加的功能：
+添加了Command List，命令输入智能提示，选择后自动填充命令
+## TODO List
+- 添加底层常用函数接口
+- 编辑缓存常用命令，在使用时避免手动输入
+
 # In-game Debug Console for Unity 3D
 
 <img height="278" src="Images/1.png" alt="screenshot" /> <img height="278" src="Images/2.png" alt="screenshot2" />
